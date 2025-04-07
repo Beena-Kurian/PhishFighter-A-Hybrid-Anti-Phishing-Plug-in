@@ -24,5 +24,8 @@ Title: PhishFighter: A Hybrid Anti-Phishing Plug-in
 ISSN: 2321-9939
 Pages: 2572–2580
 
+https://rjwave.org/ijedr/papers/IJEDR1402204.pdf
+
+
 📌 Disclaimer
 This project was developed for academic purposes in 2012-14 and not maintained.
