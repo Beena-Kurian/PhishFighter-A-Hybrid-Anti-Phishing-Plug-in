@@ -1,0 +1,240 @@
+String.prototype.endsWith = function (suffix) {
+    return this.indexOf(suffix, this.length - suffix.length) !== -1;
+};
+
+(function (win) {
+
+    var check_url;
+
+    var detect_ip = function (str) {
+        return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(str);
+    };
+
+    var whitelist = [
+        "www.paypal-media.com",
+        "signin.ebay.com",
+        "pages.ebay.in",
+        "www.paypal.com",
+        "support.apple.com",
+        "store.apple.com",
+        "www.apple.com",
+        "appleid.apple.com",
+        "simple.wikipedia.org",
+        "www.wikipedia.org",
+        "en.wikipedia.org",
+	"idmsa.apple.com"
+    ];
+
+    var allowed_tlds = [
+        ".com.",
+        ".org.",
+        ".biz.",
+        ".net.",
+        ".mil.",
+        ".gov.",
+        ".ac.in.",
+        ".gov.in.",
+        ".co.in.",
+        ".co.uk.",
+        ".in.",
+        ".com-",
+        ".org-",
+        ".biz-",
+        ".net-",
+        ".ac.in-",
+        ".gov.in-",
+        ".co.in-",
+        ".co.uk-",
+        ".in-"
+    ];
+
+    var embedded_domain = [
+        "www.paypal.com",
+        "www.apple.com",
+        "www.ebay.com",
+        "idmsa.apple.com"
+    ];
+
+    var brand_names = [
+        "apple",
+        "paypal",
+    ];
+
+    var sensitive_words = [
+        "update",
+        "verify" ,
+        "information",
+        "verification",
+        "update",
+        "login",
+        "signin",
+        "itunes",
+        "appleid",
+        "secure",
+        "account",
+        "confirmation",
+        "confirm",
+        "paypalupdate"
+    ];
+
+    var in_array = function (arr, str) {
+        var i, l = arr.length, s;
+        for (i = 0; i < l; i += 1) {
+            s = arr[i];
+            if (str == s) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    var check_array = function (arr, str) {
+        var i, l = arr.length, s;
+        for (i = 0; i < l; i += 1) {
+            s = arr[i];
+            if (str.indexOf(s) >= 0) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    var get_current_tld = function (host) {
+        var i, l = allowed_tlds.length;
+        for (i = 0; i < l; i += 1) {
+            if (host.endsWith(allowed_tlds[i])) {
+                return allowed_tlds[i];
+            }
+        }
+    };
+
+    var has_tld_in_host = function (host_no_tld) {
+        var i, l = allowed_tlds.length;
+        for (i = 0; i < l; i += 1) {
+            if (host_no_tld.indexOf(allowed_tlds[i]) > -1) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    check_url = function (url) {
+
+        if (url.scheme == 'chrome-extension') {
+            return false;
+        }
+
+        if (url.scheme == 'chrome') {
+            return false;
+        }
+
+        if (url.scheme == "https") {
+            console.log("URL scheme = https");
+            return false;
+        }
+
+        if (url.scheme == 'data' && url.path.substr(0, 10) == "text/html;") {
+            console.log("Data URI Based Attack");
+            return true;
+        }
+
+        var weight = 0;
+        var host = url.host;
+        var path = url.path;
+        var port = url.port;
+        var count = host.split(".").length - 1;
+
+
+        console.log("URL=", url);
+        console.log("host=",host);
+        console.log("path=",path);
+        console.log("port=", port);
+        console.log("count=",count);
+
+        if (in_array(whitelist, host)) {
+            console.log("Whitelisted URL");
+            return false;
+        }
+
+        if (isPhishURL(host)) {
+            console.log("Blacklisted URL");
+            return true;
+        }
+
+        if (count > 3) {
+            console.log("count-weight: 1");
+            weight += 1;
+        }
+
+        if (!host) {
+            return false;
+        }
+
+        if (host.indexOf("https") > -1) {
+            console.log("https in host-weight: 5");
+            weight += 5;
+        }
+
+        if (check_array(embedded_domain, host)) {
+            console.log("embedded_domain in host-weight: 2");
+            weight += 2;
+        }
+
+        if (check_array(embedded_domain, path)) {
+            console.log("embedded_domain in path-weight: 2");
+            weight += 2;
+        }
+
+        if (check_array(brand_names, host)) {
+            console.log("brand_names in host-weight: 2");
+            weight += 2;
+        }
+
+        if (check_array(brand_names, path)) {
+            console.log("brand_names in path-weight: 1");
+            weight += 1;
+        }
+
+        if (check_array(sensitive_words, host)) {
+            console.log("sensitive_words in host-weight: 1");
+            weight += 1;
+        }
+
+        if (check_array(sensitive_words, path)) {
+            console.log("sensitive_words in path-weight: 1");
+            weight += 1;
+        }
+
+        if (detect_ip(host)) {
+            console.log("ip address used-weight: 1");
+            weight += 1;
+        }
+
+        if (port) {
+            console.log("port used-weight: 1");
+            weight += 1;
+        }
+
+        var arr = host.split(".");
+        arr.pop();
+        arr.pop();
+        if (has_tld_in_host(arr.join('.'))) {
+            console.log("TLD is misplaced-weight: 5");
+            weight += 5;
+        }
+
+
+        if (inBlacklist(host)) {
+            console.log("Blacklisted URL");
+            return true;
+        }
+
+        console.log("Total weight---------------------------------------->", weight);
+        return weight >= 5;
+
+    };
+
+    win.check_url = check_url;
+
+
+}(this));

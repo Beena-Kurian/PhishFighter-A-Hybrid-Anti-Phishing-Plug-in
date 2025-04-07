@@ -1,0 +1,49 @@
+{
+    "manifest_version" : 2,
+
+    "name" : "PhishFighter",
+    "description" : "A HYBRID ANTI-PHISHING FRAMEWORK BASED ON URL,TEXTUAL & VISUAL CONTENT ",
+    "version" : "1.0",
+
+    "page_action" : {
+        "default_icon" : {
+            "19" : "images/authentic19.png",
+            "38" : "images/authentic38.png"
+        },
+        "default_title" : "Check Your Safety"
+    },
+
+    "content_scripts" : [
+        {
+            "matches" : ["http://*/*", "https://*/*"],
+            "js" : [
+                "content-script/main.js"
+            ]
+        }
+    ],
+
+    "background" : {
+        "scripts" : [
+            "constants.js",
+            "lib/jquery-1.8.0.min.js",
+            "helpers/storage.js",
+            "background/similarity.js",
+            "background/blacklist.js",
+            "background/parse_url.js",
+            "background/check_url.js",
+            "background/main.js"
+        ]
+    },
+
+    "permissions" : [
+        "activeTab",
+        "storage",
+        "unlimitedStorage",
+        "tabs",
+        "webRequest",
+        "webRequestBlocking",
+        "https://*/*",
+        "http://*/*"
+    ]
+
+}
